@@ -2,7 +2,7 @@ library(ggplot2)
 library(dplyr)
 library(sf)
 #importer la base de donnees qui contient les cas de la maladie X
-data<-read.csv("data/dataset1.csv")
+data<-read.csv("course MoH/data/dataset1.csv")
 table(as.factor(data$sexe))
 
 #####dplyr basics
