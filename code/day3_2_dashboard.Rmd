@@ -1,0 +1,65 @@
+---
+title: "Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: scroll
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(dplyr)
+library(ggplot2)
+library(sf)
+library(patchwork)
+
+#import dataset and shapefile
+# shapefiles
+data<-read.csv("data/dataset1.csv")
+data$date<-as.Date(data$date)
+data$dob<-as.Date(data$dob)
+
+mdg2 <- read_sf("data/shapefile/MDG_ADM1.shp")
+
+```
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+
+## Introduction
+
+Ceci est un document préliminaire produit à partir des données de  `r length(data$sample)` confirmés par laboratoire et identifiés à Madagascar entre **`r first(na.omit(data$date))`**  et **`r last(na.omit(data$date))`**.
+
+### Statistiques descriptives
+
+### Série temporelle des cas.
+
+La figure suivante présente l’évolution du nombre de prélèvements positifs  par jour à Madagascar.
+### Number of cases per day
+
+```{r}
+day<-data%>%
+  group_by(date,sexe)%>%
+  summarise(n=n())
+
+ggplot(day,aes(x=date,y=n))+
+  geom_line(aes(color=sexe))
+
+```
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Chart B
+
+```{r}
+
+
+```
+
+### Chart C
+
+```{r}
+
+```
+

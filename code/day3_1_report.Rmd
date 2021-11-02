@@ -1,0 +1,56 @@
+---
+title: "report"
+author: "Fidisoa Rasambainarivo"
+date: "11/2/2021"
+output: word_document
+---
+
+```{r setup, echo=FALSE}
+knitr::opts_chunk$set(error = TRUE)
+
+library(ggplot2)
+library(dplyr)
+library(sf)
+
+data<-read.csv("dataset1.csv")
+data$date<-as.Date(data$date)
+data<-arrange(data,date)
+data$dob<-as.Date(data$dob)
+
+```
+
+## Introduction
+
+Ceci est un document préliminaire produit à partir des données de  `r length(data$date)` confirmés par laboratoire et identifiés à Madagascar entre **`r first(na.omit(data$date))`**  et **`r last(na.omit(data$date))`**.
+
+## Statistiques descriptives
+
+
+Le tableau suivant montre la moyenne d'age par sexe des cas confirmes
+
+
+```{r, echo=FALSE}
+
+sexe<-data%>%
+  group_by(sexe)%>%
+  summarise(n=n(),
+            "Moyenne age"=mean(age,na.rm = TRUE))
+
+```
+
+## Including Plots
+
+La figure suivante présente l’évolution du nombre de prélèvements positifs  par jour à Madagascar.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r pressure, echo=FALSE}
+
+day<-data%>%group_by(date)%>%
+  summarise(n=n())
+
+ggplot(day,aes(x=date,y=n))+
+  geom_line()
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
