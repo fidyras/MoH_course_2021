@@ -6,7 +6,6 @@ output: word_document
 ---
 
 ```{r setup, echo=FALSE}
-knitr::opts_chunk$set(error = TRUE)
 
 library(ggplot2)
 library(dplyr)
