@@ -10,6 +10,7 @@ output: word_document
 library(ggplot2)
 library(dplyr)
 library(sf)
+library(zoo)
 
 data<-read.csv("dataset1.csv")
 data$date<-as.Date(data$date)
@@ -46,10 +47,11 @@ When you click the **Knit** button a document will be generated that includes bo
 ```{r pressure, echo=FALSE}
 
 day<-data%>%group_by(date)%>%
-  summarise(n=n())
+  summarise(cases=n())%>%
+  mutate(rollmean=rollmeanr(cases,7,fill=NA))
 
-ggplot(day,aes(x=date,y=n))+
-  geom_line()
+ggplot(day,aes(x=date,y=cases))+
+  geom_col()
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
