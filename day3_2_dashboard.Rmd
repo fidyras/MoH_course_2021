@@ -1,0 +1,217 @@
+---
+title: "Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: scroll
+    theme: bootstrap
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard) # fonctions pour le dashboard
+library(dplyr)
+library(ggplot2)
+library(sf)
+library(patchwork) #fonctions pour mettre plusieurs graphes dans differents panneaux
+library(scales)
+library(zoo)
+library(plotly) #fonctions permettant de faire des graphes interactifs
+library(lubridate) #fonctions facilitant la transformation des donnees calendaires
+
+#importer les bases de donnees et shapefile
+
+data<-read.csv("code/dataset1.csv")
+data$date<-as.Date(data$date)
+data$dob<-as.Date(data$dob)
+
+mdg2 <- read_sf("code/shapefile/MDG_ADM1.shp")
+mdg2<-rmapshaper::ms_simplify(mdg2, keep = 0.15, keep_shapes = T) #pour alleger la carte
+mdg2<-st_as_sf(mdg2)
+
+tests<-read.csv("code/tests.csv")
+tests$date<-as.Date(tests$date)
+
+day<-data%>%
+  group_by(date)%>%
+  arrange(date)%>%
+  summarise(cas=n())
+
+day<-day%>%
+  right_join(tests)%>% 
+  filter(date<max(data$date))%>%arrange(date)
+
+day$cas<-ifelse(is.na(day$cas),0,day$cas)
+
+day<-day%>%
+  mutate("rollmean"=rollmeanr(cas,7,fill=NA),
+         "positivity"=cas/tests,
+         "positivity_mean"=rollmeanr(positivity,7,fill=NA))
+
+region<-data%>%
+  group_by(region)%>%
+  summarise(cas=n())
+              
+
+```
+
+
+
+
+Ceci est un tableau de bord préliminaire produit à partir des données de cas de COVID-19 confirmés par laboratoire à Madagascar entre **`r first(na.omit(day$date))`**  et **`r last(na.omit(day$date))`**.
+
+Row 
+-----------------------------------------------------------------------
+
+### Nombre de cas
+
+```{r}
+
+valueBox(
+  value = format(sum(day$cas,na.rm=TRUE), big.mark = ","),
+  caption = paste("Nombre total des cas jusqu'au",
+                  format(last(day$date), format = "%B %d %Y")),
+  icon = "fa-ambulance",
+  color = "info"
+)
+
+```
+
+###  moyenne cas par jour
+
+```{r}
+
+gauge(
+  value = round(last(day$rollmean),2),
+  min= 0,
+  max= round(max(day$rollmean,na.rm = TRUE),0),
+  label = paste("moyenne de cas \n par jour" ),
+  sectors = gaugeSectors(
+    success = c(0,1/3*max(day$rollmean,na.rm = TRUE)),
+    warning = c(1/3*max(day$rollmean,na.rm = TRUE),2/3*max(day$rollmean,na.rm = TRUE)),
+    danger = c(2/3*max(day$rollmean,na.rm = TRUE),max(day$rollmean,na.rm = TRUE))
+  )
+)
+
+```
+
+### cas dernier jour
+
+```{r}
+
+valueBox(
+  value = format(last(day$cas), big.mark = ","),
+  caption = paste("Nombre de cas rapportes le",
+                  format(last(day$date), format = "%B %d %Y")),
+  icon = "fa-flask",
+  color = "warning"
+)
+
+```
+
+
+Row 
+-----------------------------------------------------------------------
+
+
+### Série temporelle des cas.
+
+La figure suivante présente l’évolution du nombre de cas  par jour à Madagascar.
+
+
+```{r, warning=FALSE}
+
+
+cas_jour<-ggplot(day)+
+  geom_col(aes(x=date,y=cas))+
+  geom_line(aes(x=date,y=rollmean),color="red")+
+  theme(legend.position = "none", 
+        panel.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_x_date(date_breaks = "1 month", date_labels = "%Y-%m-%d")
+
+ggplotly(cas_jour)
+
+
+```
+
+
+Row 
+-----------------------------------------------------------------------
+
+### Texte
+
+Sur cette page, vous trouverez des informations concernant la situation de la flambee de la maladie à coronavirus 2019 (COVID-19) dont les premiers cas ont été signalés pour la première fois à Wuhan, en Chine, le 31 décembre 2019. Cette page est mise à jour quotidiennement.
+
+Le ministere de la santé travaille en étroite collaboration avec les experts mondiaux, les gouvernements et les partenaires pour élargir rapidement les connaissances scientifiques sur ce nouveau virus, suivre sa propagation et sa virulence, et donner des conseils aux individus sur les mesures à prendre pour protéger leur santé et empêcher la propagation de cette flambée.
+
+Les symptômes les plus courants sont les suivants :
+
+- Fièvre
+- Toux sèche
+- Fatigue
+
+D’autres symptômes moins courants peuvent toucher certains patients :
+
+- Perte du goût et de l’odorat,
+- Congestion nasale,
+- Conjonctivite (yeux rouges),
+- Mal de gorge,
+- Maux de tête,
+- Douleurs musculaires ou articulaires,
+- Différents types d’éruption cutanée,
+- Nausées ou vomissements,
+- Diarrhée,
+- Frissons ou vertiges.
+ 
+
+Les symptômes de la forme grave de COVID-19 sont les suivants :
+
+- Essoufflement,
+- Perte d’appétit,
+- État confusionnel,
+- Douleurs ou sensation d’oppression persistantes dans la poitrine,
+- Température élevée (supérieure à 38° C).
+
+Toute personne, quel que soit son âge, qui présente de la fièvre et/ou une toux associée à des difficultés à respirer ou à un essoufflement, des douleurs ou une sensation d’oppression dans la poitrine, ou une perte d’élocution ou de mouvement, doit immédiatement consulter un médecin. Si possible, appelez d’abord votre prestataire de soins de santé, votre ligne d’assistance téléphonique ou votre établissement de santé, afin d’être dirigé vers la structure adéquate.
+
+
+### Map of cases
+
+```{r}
+
+mdg2<-mdg2%>%
+  left_join(region,by=c("NAME"="region"))
+
+breaks_cases=c(200,400,800,1200,5000)
+ggplot(mdg2)+
+  geom_sf(aes(fill=cas))+
+  scale_fill_viridis_b(breaks=breaks_cases,
+                       trans="log10",
+                       name="Number of cases",
+                       option="A",
+                       direction = -1)+
+  #guides(fill=guide_colorbar(nbin=12))+
+  #labs(title="Pro-rata")+
+  theme_void()
+
+```
+
+Row 
+-----------------------------------------------------------------------
+
+### taux de positivite
+
+```{r}
+
+positivity<-ggplot(day)+
+  geom_col(aes(x=date,y=positivity),fill="green")+
+  geom_line(aes(x=date,y=positivity_mean))+
+  theme(legend.position = "none", 
+        panel.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_x_date(date_breaks = "1 month", date_labels = "%Y-%m-%d")+
+  scale_y_continuous(labels=percent)
+
+ggplotly(positivity)
+
+```
