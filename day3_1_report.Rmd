@@ -1,57 +1,153 @@
 ---
-title: "report"
-author: "Fidisoa Rasambainarivo"
+title: "Rapport hebdomadaire COVID-19"
+author: "Le gourmet"
 date: "11/2/2021"
 output: word_document
 ---
 
-```{r setup, echo=FALSE}
+```{r setup,echo=FALSE, warning = FALSE, message=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning = FALSE, message=FALSE)
 
+#initialisation (charger les packages et bases de donnees necessaires)
 library(ggplot2)
 library(dplyr)
 library(sf)
 library(zoo)
 
-data<-read.csv("dataset1.csv")
+data<-read.csv("code/dataset1.csv")
 data$date<-as.Date(data$date)
 data<-arrange(data,date)
 data$dob<-as.Date(data$dob)
+
+
+mdg2 <- read_sf("code/shapefile/MDG_ADM1.shp")
+mdg2<-rmapshaper::ms_simplify(mdg2, keep = 0.15, keep_shapes = T) #pour alleger la carte
+mdg2<-st_as_sf(mdg2)
+
+tests<-read.csv("code/tests.csv")
+tests$date<-as.Date(tests$date)
 
 ```
 
 ## Introduction
 
-Ceci est un document préliminaire produit à partir des données de  `r length(data$date)` confirmés par laboratoire et identifiés à Madagascar entre **`r first(na.omit(data$date))`**  et **`r last(na.omit(data$date))`**.
+### Texte dans un R markdown
+
+Dans ce document, vous trouverez des informations concernant la situation de la flambee de la maladie à coronavirus 2019 (COVID-19) a Madagascar dont les premiers cas ont été signalés pour la première fois à Wuhan, en Chine, le 31 décembre 2019. Cette page est mise à jour regulierement. Derniere mise a jour **`r last(na.omit(data$date))`**.
+
+Le ministere de la santé travaille en étroite collaboration avec les experts mondiaux, les gouvernements et les partenaires pour élargir rapidement les connaissances scientifiques sur ce nouveau virus, suivre sa propagation et sa virulence, et donner des conseils aux individus sur les mesures à prendre pour protéger leur santé et empêcher la propagation de cette flambée.
+
+Les symptômes les plus courants sont les suivants :
+
+* Fièvre
+* Toux sèche
+* Fatigue
+
+D’autres symptômes moins courants peuvent toucher certains patients :
+
+* Perte du goût et de l’odorat,
+* Congestion nasale,
+* Conjonctivite (yeux rouges),
+* Mal de gorge,
+* Maux de tête,
+* Douleurs musculaires ou articulaires,
+* Différents types d’éruption cutanée,
+* Diarrhée.
+ 
+
+**Les symptômes de la forme grave de COVID-19 sont les suivants :**
+
+* Essoufflement,
+* Perte d’appétit,
+* État confusionnel,
+* Douleurs ou sensation d’oppression persistantes dans la poitrine,
+* Température élevée (supérieure à 38° C).
+
+Toute personne, quel que soit son âge, qui présente de la fièvre et/ou une toux associée à des difficultés à respirer ou à un essoufflement, des douleurs ou une sensation d’oppression dans la poitrine, ou une perte d’élocution ou de mouvement, doit immédiatement consulter un médecin.
+
+Ceci est un document préliminaire produit à partir des données de  `r length(data$date)` cas de COVID-19 confirmés par laboratoire et identifiés à Madagascar entre **`r first(na.omit(data$date))`**  et **`r last(na.omit(data$date))`**.
+
+
 
 ## Statistiques descriptives
 
+### Exemple pour inclure une figure: Serie temporelle de cas
+
+La figure suivante présente l’évolution du nombre de prélèvements positifs  par jour à Madagascar.
+
+```{r, echo=FALSE, warning=FALSE}
+
+day<-data%>%
+  group_by(date)%>%
+  arrange(date)%>%
+  summarise(cas=n())%>%
+  right_join(tests)%>% 
+  filter(date<max(data$date))%>%
+  arrange(date)
+
+day$cas<-ifelse(is.na(day$cas),0,day$cas)
+
+day<-day%>%
+  mutate("rollmean"=rollmeanr(cas,7,fill=NA),
+         "positivity"=cas/tests,
+         "positivity_mean"=rollmeanr(positivity,7,fill=NA))
+
+ggplot(day)+
+  geom_col(aes(x=date,y=cas))+
+  geom_line(aes(x=date,y=rollmean),color="red")+
+  theme(legend.position = "none", 
+        panel.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_x_date(date_breaks = "1 month", date_labels = "%Y-%m-%d")
+
+
+```
+
+
+## carte du nombre de cas a Madagascar
+
+
+```{r map, echo=FALSE, warning=FALSE}
+
+region<-data%>%
+  group_by(region)%>%
+  summarise(cas=n())
+
+
+mdg2<-mdg2%>%
+  left_join(region,by=c("NAME"="region"))
+
+breaks_cases=c(200,400,800,1200,5000)
+ggplot(mdg2)+
+  geom_sf(aes(fill=cas))+
+  scale_fill_viridis_b(breaks=breaks_cases,
+                       trans="log10",
+                       name="Number of cases",
+                       option="A",
+                       direction = -1)+
+  #guides(fill=guide_colorbar(nbin=12))+
+  #labs(title="Pro-rata")+
+  theme_void()
+
+```
+
+\newpage
+
+### Exemple pour inclure un tableau : moyenne d'age des cas par region
 
 Le tableau suivant montre la moyenne d'age par sexe des cas confirmes
 
 
 ```{r, echo=FALSE}
 
-sexe<-data%>%
-  group_by(sexe)%>%
-  summarise(n=n(),
-            "Moyenne age"=mean(age,na.rm = TRUE))
+region_age<-data%>% #faire un tableau du nombre de cas par region par exemple
+  group_by(region)%>%
+  summarise(Cas=n(),Age=round(mean(age,na.rm = TRUE),2))
+  
+knitr::kable(region_age)
 
 ```
 
-## Including Plots
 
-La figure suivante présente l’évolution du nombre de prélèvements positifs  par jour à Madagascar.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r pressure, echo=FALSE}
-
-day<-data%>%group_by(date)%>%
-  summarise(cases=n())%>%
-  mutate(rollmean=rollmeanr(cases,7,fill=NA))
-
-ggplot(day,aes(x=date,y=cases))+
-  geom_col()
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

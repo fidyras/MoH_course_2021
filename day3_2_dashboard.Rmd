@@ -4,7 +4,6 @@ output:
   flexdashboard::flex_dashboard:
     orientation: rows
     vertical_layout: scroll
-    theme: bootstrap
 ---
 
 ```{r setup, include=FALSE}
@@ -18,6 +17,7 @@ library(zoo)
 library(plotly) #fonctions permettant de faire des graphes interactifs
 library(lubridate) #fonctions facilitant la transformation des donnees calendaires
 library(RColorBrewer)
+library(DT)#pour inserer des tableaux interactifs sur le dashboard
 
 #importer les bases de donnees et shapefile
 
@@ -35,9 +35,7 @@ tests$date<-as.Date(tests$date)
 day<-data%>%
   group_by(date)%>%
   arrange(date)%>%
-  summarise(cas=n())
-
-day<-day%>%
+  summarise(cas=n())%>%
   right_join(tests)%>% 
   filter(date<max(data$date))%>%arrange(date)
 
@@ -59,6 +57,9 @@ region<-data%>%
 
 
 Ceci est un tableau de bord préliminaire produit à partir des données de cas de COVID-19 confirmés par laboratoire à Madagascar entre **`r first(na.omit(day$date))`**  et **`r last(na.omit(day$date))`**.
+
+
+
 
 Row 
 -----------------------------------------------------------------------
@@ -219,39 +220,6 @@ Row
 -----------------------------------------------------------------------
 
 
-### distribution des cas par sexe
-
-```{r}
-
-col1 <- brewer.pal(4, "Set3")[4]
-
-data %>% 
-  group_by(sexe) %>% 
-  summarise(count = n()) %>% 
-  mutate(prop = count/sum(count)) %>% 
-  ggplot( aes(x = sexe, y = prop)) +
-  geom_col(fill = col1, col = 1) +
-  labs(x = "Sexe",
-       y = "Proportion",
-       title = "Total covid-19 infection par sexe")+
-  theme(text = element_text(size = 12),
-        axis.text.x = element_text(face = "italic"),
-        plot.title = element_text(hjust = 0.5),
-        panel.background = element_rect(fill = "white", colour = "Black",
-                                        size = 1, linetype = "solid"),
-        panel.grid.major = element_line(size = 0.25, linetype = 'solid',
-                                        colour = "black"), 
-        panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
-                                        colour = "gray")) +
-  scale_x_discrete(labels = c("Feminin", "Masculin"))+
-  scale_y_continuous(labels = scales::percent)+
-  coord_cartesian(ylim = c(0, 0.6))
-
-```
-
-
-
-
 ### taux de positivite
 
 ```{r}
@@ -268,3 +236,26 @@ positivity<-ggplot(day)+
 ggplotly(positivity)
 
 ```
+
+
+
+Row {data-height=650}
+-----------------------------------------------------------------------
+
+### statistiques sommaires des cas par region
+
+```{r}
+
+
+region_age<-data%>% #faire un tableau du nombre de cas par region par exemple
+  group_by(region)%>%
+  summarise(Cas=n(),Age=round(mean(age,na.rm = TRUE),2),"Age minimum"=min(age,na.rm = TRUE))
+  
+knitr::kable(region_age)
+
+
+```
+
+
+
+
