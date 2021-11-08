@@ -1,5 +1,5 @@
 ---
-title: "Dashboard"
+title: "Dashboard de COVID-19 a Madagascar"
 output: 
   flexdashboard::flex_dashboard:
     orientation: rows
@@ -120,12 +120,15 @@ Row
 
 
 ```{r}
+col1 <- brewer.pal(4, "Set3")[4]
 cumulative<-ggplot(data, aes(x = date)) +
-  stat_bin(aes(y=cumsum(..count..)), geom= "bar", binwidth  = 1)+
+  stat_bin(aes(y=cumsum(..count..)), geom= "bar", binwidth  = 1,fill=col1)+
+  
   theme(legend.position = "none", 
         panel.background = element_blank(),
         axis.text.x = element_text(angle = 45, hjust = 1))+
-  scale_x_date(date_breaks = "1 month", date_labels = "%Y-%m-%d")
+  scale_x_date(date_breaks = "1 month", date_labels = "%Y-%m-%d")+
+  scale_y_continuous(name="Nombre cas cumules")
 
 ggplotly(cumulative)
 
@@ -220,20 +223,29 @@ Row
 -----------------------------------------------------------------------
 
 
-### taux de positivite
+### taux de positivite par semaine
 
 ```{r}
+week<-day%>%
+  mutate(week=ceiling_date(date,unit="week"))%>%
+  group_by(week)%>%
+  summarise(cas=sum(cas,na.rm=TRUE),tests=sum(tests,na.rm = TRUE))%>%
+  mutate("rollmean"=rollmeanr(cas,3,fill=NA),
+         "positivity"=cas/tests,
+         "positivity_mean"=rollmeanr(positivity,3,fill=NA))
 
-positivity<-ggplot(day)+
-  geom_col(aes(x=date,y=positivity),fill="green")+
-  geom_line(aes(x=date,y=positivity_mean))+
-  theme(legend.position = "none", 
+breaks_positivity=c(0.25,0.5,0.75,1,1.5)
+positivity<-ggplot(week)+
+  geom_col(aes(x=week,y=positivity,fill=positivity))+
+  scale_fill_viridis_b(option="B",)+
+  geom_line(aes(x=week,y=positivity_mean))+
+  theme( 
         panel.background = element_blank(),
         axis.text.x = element_text(angle = 45, hjust = 1))+
   scale_x_date(date_breaks = "1 month", date_labels = "%Y-%m-%d")+
   scale_y_continuous(labels=percent)
 
-ggplotly(positivity)
+positivity
 
 ```
 
@@ -249,13 +261,39 @@ Row {data-height=650}
 
 region_age<-data%>% #faire un tableau du nombre de cas par region par exemple
   group_by(region)%>%
-  summarise(Cas=n(),Age=round(mean(age,na.rm = TRUE),2),"Age minimum"=min(age,na.rm = TRUE))
+  summarise("Nombre Cas"=n(),"Age moyen"=round(mean(age,na.rm = TRUE),2))
   
 knitr::kable(region_age)
 
 
 ```
 
+### pyramide des ages des cas
+```{r}
+data%>%filter(!is.na(age))%>%
+  group_by(age,sexe)%>%
+  dplyr::summarise(cas=n())%>%
+  mutate(age_cat=cut(age,breaks=c(seq(0,80,5),90,120),include.lowest = TRUE))%>%
+  select("age"=age,"age_cat"=age_cat,sexe,cas)%>%
+  group_by(age_cat,sexe)%>%
+  dplyr::summarise(cas=sum(cas))%>%
+  ungroup()%>%
+  group_by(sexe)%>%
+  mutate(perc_cas=cas/sum(cas))%>%
+  ungroup()->age
+
+ggplot(age,aes(x=age_cat,y=perc_cas,fill=sexe))+
+  geom_col(data=subset(age,sexe == "MASCULIN"))+
+  geom_col(data=subset(age,sexe == "FEMININ"),aes(y=perc_cas*(-1)))+
+  coord_flip()+theme(legend.position = "right",
+        text = element_text(size = 12),
+        panel.background=element_blank())+
+  scale_fill_brewer(palette = "Dark2")+
+  scale_y_continuous(label=percent)+
+  labs(x="Categorie d'age",y="Proportion")
+
+
+```
 
 
 
