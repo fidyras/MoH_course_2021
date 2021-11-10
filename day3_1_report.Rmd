@@ -5,6 +5,13 @@ date: "11/2/2021"
 output: word_document
 ---
 
+
+```{r}
+
+```
+
+
+
 ```{r setup,echo=FALSE, warning = FALSE, message=FALSE}
 knitr::opts_chunk$set(echo=FALSE, warning = FALSE, message=FALSE)
 
@@ -33,7 +40,7 @@ tests$date<-as.Date(tests$date)
 
 ### Texte dans un R markdown
 
-Dans ce document, vous trouverez des informations concernant la situation de la flambee de la maladie à coronavirus 2019 (COVID-19) a Madagascar dont les premiers cas ont été signalés pour la première fois à Wuhan, en Chine, le 31 décembre 2019. Cette page est mise à jour regulierement. Derniere mise a jour **`r last(na.omit(data$date))`**.
+Dans ce document, vous trouverez des informations concernant la situation de la flambee de la maladie à coronavirus 2019 (COVID-19) a Madagascar. Ce document est mis à jour regulierement. Derniere mise a jour **`r last(na.omit(data$date))`**.
 
 Le ministere de la santé travaille en étroite collaboration avec les experts mondiaux, les gouvernements et les partenaires pour élargir rapidement les connaissances scientifiques sur ce nouveau virus, suivre sa propagation et sa virulence, et donner des conseils aux individus sur les mesures à prendre pour protéger leur santé et empêcher la propagation de cette flambée.
 

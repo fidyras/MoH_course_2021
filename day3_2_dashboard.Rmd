@@ -21,7 +21,7 @@ library(DT)#pour inserer des tableaux interactifs sur le dashboard
 
 #importer les bases de donnees et shapefile
 
-data<-read.csv("code/dataset1.csv")
+data<-read.csv("code/dataset2.csv")
 data$date<-as.Date(data$date)
 data$dob<-as.Date(data$dob)
 
