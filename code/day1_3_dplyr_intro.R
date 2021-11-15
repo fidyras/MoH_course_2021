@@ -1,12 +1,23 @@
-library(ggplot2)
+install.packages("tidyverse")
+install.packages("sf")
+install.packages("zoo")
+install.packages("flexdashboard")
+install.packages("scales")
+install.packages("lubridate")
+
+
 library(dplyr)
-library(sf)
 library(zoo)
 
 
 
 #importer la base de donnees qui contient les cas de la maladie X
 data<-read.csv("code/dataset1.csv")
+
+View(data)
+
+
+
 
 
 
@@ -19,16 +30,28 @@ data<-read.csv("code/dataset1.csv")
 #le premier argument est la base de donnee, les arguments suivants sont les expressions qui filtrent la base de donnees
 
 filter(data, region=="Melaky")
+
+
+
 filter(data, region=="Analamanga",age<2)
 
-#dplyr ne modifie pas la base donnee initiale, mais on peut creer un nouvel objet en utilisant <-
+
+# R ne modifie pas la base donnee initiale, mais on peut creer un nouvel objet en utilisant <-
 enfants_AN<-filter(data, region=="Analamanga",age<2)
 
+View(data)
+
 # trier les donnees
+
 ## trier les cas de la region Melaky, et uniquement la region Melaky en fonction de l'age des cas
 
 MK<-filter(data, region=="Melaky")
+
 MKage<-arrange(MK,age)
+
+
+
+
 
 ######################################################
 ###############
@@ -39,6 +62,15 @@ MKage2<-data%>%
   filter(region=="Melaky")%>%
   arrange(age)
 
+
+
+
+
+
+
+
+
+
 ##############################################################
 ## Summary statistics
 ##############################################################
@@ -48,16 +80,27 @@ data%>%
   summarise(cas=n())
 
 #compter le nombre de cas par jour
-(day<-data%>%
+day<-data%>%
   group_by(date)%>%
-  summarise(cas=n()))
+  summarise(cas=n())
 
 # count number of cases per region
-(region<-data%>%
-  group_by(region)%>%
-  summarise(cas=n()))
 
 
+#########################################
+#### Exercice: je souhaite avoir la moyenne d'age des cas par region 
+
+
+
+
+
+
+
+
+
+
+
+#######################################################
 #on peut donner plusieurs statistiques et grouper selon plusieurs facteurs 
 data%>%
   group_by(region,sexe)%>%
@@ -70,16 +113,18 @@ data%>%
 
 
 
-# count number of cases per region per day
-data%>%
-  group_by(region,date)%>%
-  summarise(cas=n())
+
   
 
-
+##############################################################
 ## ajouter une nouvelle colonne (mutate)
-###supposons que nous souhaiterions savoir quelle proportion des cas totaux ont eu lieu a quelle date et
+#################################################################
+
+###  supposons que nous souhaiterions savoir quelle proportion des cas totaux 
+###  ont eu lieu a quelle date et
 ### quelle est la moyenne (mobile) quotidienne des cas
+
+
 data%>%
   group_by(date)%>%
   summarise(cas=n())%>%
@@ -91,19 +136,34 @@ data%>%
 
 ##grouper deux bases de donnees en fonction d'une colonne commune
 tests<-read.csv("code/tests.csv")
-
-
+View(tests)
+tests%>%arrange(date)->tests
 
 day<-day%>%
   right_join(tests)%>% #joindre le tableau day (nombre de cas par jour avec le tableau contenant le nombre de tests effectues par jour
   filter(date<max(data$date))%>%#filtrer le tableau pour ne pas depasser la date maximale du tableau de cas
   arrange(date) 
 
-day<-day%>%select(-X)
-day
+View(day)
 
 day$cas<-ifelse(is.na(day$cas),0,day$cas)
 day
 
 
+##########################
+### exercice : calculer le taux de positivite quotidien et la moyenne mobile du taux de positivite
+##########################
 
+
+
+
+
+
+
+
+
+
+
+##########################
+### exercice : calculer le nombre de cas pour une region par semaine et la moyenne mobile du taux de positivite pour cette semaine
+#########################
