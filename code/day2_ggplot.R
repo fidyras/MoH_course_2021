@@ -4,7 +4,6 @@ library(ggplot2)
 library(dplyr)
 library(zoo)
 library(RColorBrewer)
-library(ggpubr)
 library(sf)
 library(scales)
 
@@ -104,7 +103,8 @@ ggplot(dataset2, aes(x = pop_size, y = n_cas)) +
 
 ### a - construire un barplot. 
 ggplot(dataset1, aes(x = date)) +
-  geom_bar()
+  geom_bar() +
+  scale_x_date(date_breaks = "3 month", date_labels =  "%m/%y") 
 
 ## Par défault, "il n'y a pas de y" car geom_bar() calcul directement le nombre de cas en comptant le nombre de fois qu'une certaine date apprait (i.e. le nombre de ligne). Pour geom_line() ou geom_point()., il faut définir y. Dans notre cas, le plus simple est de créer un nouveau jeu donnée. 
 
@@ -356,7 +356,7 @@ ggplot(dataset1, aes(x = sexe)) +
   geom_bar()+
   theme(panel.background = element_rect(fill = "pink"))
 
-### d- changer les lignes
+### d - changer les lignes
 ggplot(dataset1, aes(x = sexe)) +
   geom_bar() +
   theme(panel.grid.major = element_line(size = 1.5, color = "red"))
@@ -465,7 +465,7 @@ ggplot(mdg2) +
   theme_void() # pour se focaliser sur la carte
 
 
-# UNE EXEMPLE COMPLETE
+# UN EXEMPLE COMPLETE
 
 ggplot(mdg2) +
   geom_sf(aes(fill = n_cas), color = "white") +
