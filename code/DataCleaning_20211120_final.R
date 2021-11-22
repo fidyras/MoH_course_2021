@@ -62,8 +62,8 @@
 ##Nous allons d'abord commencer par lire l'ensemble des données.
 
 library(tidyverse)
-setwd('~/Desktop/MoH_course_2021-main/DataCleaning/')
-data_file <- read.csv('DataSample_final.csv', header = TRUE)
+
+data_file <- read.csv('code/DataSample_final.csv', header = TRUE)
 
 # We see that there is a problem with an error message showing up in red. We cannot clean our data unless we can read in our data. We can fix this by allowing for French accents. 
 # Nous voyons qu'il y a un problème avec un message d'erreur qui s'affiche en rouge. 
@@ -72,7 +72,7 @@ data_file <- read.csv('DataSample_final.csv', header = TRUE)
 
 #data_file <- read.csv('DataSample.csv', header = TRUE, fileEncoding = "Latin1", check.names = F)
 # Si la ligne ci-dessus génère des avertissement, vous pouvez essayer la suivante:
-data_file <- read.csv("DataSample_final.csv", header=TRUE, encoding = "Latin1", check.names = F)
+data_file <- read.csv("code/DataSample_final.csv", header=TRUE, encoding = "Latin1", check.names = F)
 
 # Now what should we check in the data first, we see that there are different columns that represent different pathogens -- to make it easier we are going to relabel the date variable as 'date'; Suspicion d'arbovirose as 'sus_arb'; Diarrh\u008ees aigues chez moins 5ans as 'diarr_u5', and Toxi Infection Alimentaire collective (TIAC) as 'tiac'
 # Maintenant, que devons-nous vérifier  en premier, nous voyons qu'il y a différentes colonnes qui représentent des agents pathogènes -- 
