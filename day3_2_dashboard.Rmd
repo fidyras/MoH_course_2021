@@ -2,11 +2,11 @@
 title: "Dashboard de COVID-19 a Madagascar"
 output: 
   flexdashboard::flex_dashboard:
-    orientation: rows
+    orientation: row
     vertical_layout: scroll
 ---
 
-```{r setup, include=FALSE}
+```{r setup}
 library(flexdashboard) # fonctions pour le dashboard
 library(dplyr)
 library(ggplot2)
@@ -66,7 +66,7 @@ Row
 
 ### Nombre de cas
 
-```{r}
+```{r value box}
 
 valueBox(
   value = format(sum(day$cas,na.rm=TRUE), big.mark = ","),
@@ -112,7 +112,7 @@ valueBox(
 
 
 Row 
------------------------------------------------------------------------
+------------------------------------------------------------------
 
 
 

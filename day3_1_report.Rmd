@@ -1,19 +1,16 @@
 ---
-title: "Rapport hebdomadaire COVID-19"
+title: "Rapport fictif hebdomadaire COVID-19"
 author: "Le gourmet"
 date: "11/2/2021"
-output: word_document
+output: powerpoint_presentation
 ---
 
 
-```{r}
-
-```
 
 
 
 ```{r setup,echo=FALSE, warning = FALSE, message=FALSE}
-knitr::opts_chunk$set(echo=FALSE, warning = FALSE, message=FALSE)
+
 
 #initialisation (charger les packages et bases de donnees necessaires)
 library(ggplot2)
@@ -21,7 +18,7 @@ library(dplyr)
 library(sf)
 library(zoo)
 
-data<-read.csv("code/dataset1.csv")
+data<-read.csv("code/dataset2.csv")
 data$date<-as.Date(data$date)
 data<-arrange(data,date)
 data$dob<-as.Date(data$dob)
@@ -38,9 +35,9 @@ tests$date<-as.Date(tests$date)
 
 ## Introduction
 
-### Texte dans un R markdown
+### Inserer un texte dans un R markdown
 
-Dans ce document, vous trouverez des informations concernant la situation de la flambee de la maladie à coronavirus 2019 (COVID-19) a Madagascar. Ce document est mis à jour regulierement. Derniere mise a jour **`r last(na.omit(data$date))`**.
+Dans ce document, vous trouverez des informations concernant la situation de la flambee de la maladie à coronavirus 2019 (COVID-19) a Madagascar. Ce document est mis à jour regulierement. Derniere mise a jour `r last(na.omit(data$date))`. Nous pouvons formatter le texte a notre guise avec *  * pour *italique* ou **   ** pour **gras** 
 
 Le ministere de la santé travaille en étroite collaboration avec les experts mondiaux, les gouvernements et les partenaires pour élargir rapidement les connaissances scientifiques sur ce nouveau virus, suivre sa propagation et sa virulence, et donner des conseils aux individus sur les mesures à prendre pour protéger leur santé et empêcher la propagation de cette flambée.
 
@@ -82,7 +79,7 @@ Ceci est un document préliminaire produit à partir des données de  `r length(
 
 La figure suivante présente l’évolution du nombre de prélèvements positifs  par jour à Madagascar.
 
-```{r, echo=FALSE, warning=FALSE}
+```{r,echo=FALSE, warning=FALSE}
 
 day<-data%>%
   group_by(date)%>%
@@ -102,9 +99,7 @@ day<-day%>%
 ggplot(day)+
   geom_col(aes(x=date,y=cas))+
   geom_line(aes(x=date,y=rollmean),color="red")+
-  theme(legend.position = "none", 
-        panel.background = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1))+
+  theme_bw()+
   scale_x_date(date_breaks = "1 month", date_labels = "%Y-%m-%d")
 
 
