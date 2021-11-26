@@ -1,35 +1,168 @@
 ---
-title: "Untitled"
-author: "legourmet"
-date: "11/19/2021"
+title: "Situation de la COVID19"
+author: ""
+date: "11/23/2021"
 output: powerpoint_presentation
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE,message = FALSE)
+
+library(patchwork)
+library(sf)
+library(dplyr)
+library(ggplot2)
+library(readxl)
+library(lubridate)
+library(zoo)
+
+data <- read_xlsx("code/data_15_11_2021.xlsx", sheet = 1)
+tests <- read_xlsx("code/data_15_11_2021.xlsx", sheet = 2)
+data<-data%>%rename("date"=2,"region"=7)
+
+data$region<-stringr::str_to_title(data$region)
+
+data$date<-as.Date(data$date)
+data<-data%>%arrange(date)
+data<-data%>%filter(!is.na(date))
+
+
+
+data$region<-gsub("Boenny","Boeny",data$region) #correct typo
+data$region<-gsub("Analamaga","Analamanga",data$region) #correct typo
+
+data$region<-gsub("Haute Matsiatra","Matsiatra Ambony",data$region)
+data$region<-gsub("Atsimo Andrefana","Atsimo-Andrefana",data$region)
+data$region<-gsub("Atsimo Atsinanana","Atsimo-Atsinanana",data$region)
+data$region<-gsub("Alaotra Mangoro","Alaotra-Mangoro",data$region)
+data$region<-gsub("Vatovavy Fitovinany","Vatovavy-Fitovinany",data$region)
+#replace space with dash in names to match the shapefile
+
+
+
+
+
+
+
+tests <- tests%>%rename("date"=1,"deces"=2,"cas"=3,"test"=4)
+
+tests$date<-as.Date(tests$date)
+
+tests<-tests%>%filter(!is.na(date))
+
+tests$test<-ifelse(tests$test<0, 
+                   tests$test*-1, 
+                   tests$test)
+
+
+
 ```
 
-## R Markdown
+## Evolution temporelle du taux de positivite par semaine
 
-This is an R Markdown presentation. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document.
 
-## Slide with Bullets
+```{r}
 
-- Bullet 1
-- Bullet 2
-- Bullet 3
+tests<-tests %>% mutate(positivity=cas/test*100)
+tests<-tests %>% mutate(dimanche=ceiling_date(date,"week"))
 
-## Slide with R Output
+week<-tests %>% 
+  group_by(dimanche) %>% 
+  summarise(cas=sum(cas),test=sum(test),deces=sum(deces))%>%
+  mutate(positivity=cas/test*100)
 
-```{r cars, echo = TRUE}
-summary(cars)
+ggplot(week,aes(x=dimanche,y=positivity))+
+  geom_col(aes(fill="positivity"))+
+  labs(x="Date de notification", y="Taux de positivite")+
+  scale_x_date(breaks="1 month")+
+   theme(legend.position = "none", 
+        panel.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_fill_manual(name = "", values = c("positivity" = "#1B9E77"))
+
 ```
 
-## Slide with Plot
+## Cartes du nombre de cas
 
-```{r pressure}
-plot(pressure)
+
+```{r cartes, echo=FALSE, dpi=300, fig.width=12, fig.height=8}
+
+mdg<-read_sf("code/shapefile/MDG_ADM1.shp")
+mdg <- rmapshaper::ms_simplify(mdg, keep = 0.15, keep_shapes = T) #pour alleger la carte
+
+
+
+
+region<-data %>% group_by(region) %>% summarise (cas=n())
+
+mdg<-mdg %>% left_join(region,
+                       by=c("NAME"="region"))
+
+cumul_map<-ggplot(mdg)+
+  geom_sf(aes(fill=cas))+
+  scale_fill_viridis_b(
+                       trans = "log10",
+                       name = "Nombre de cas cumules",
+                       option = "C",
+                       direction = -1)+
+  labs(title="Nombre de cas par region")+
+  theme_void()
+
+mindate<- last(data$date)-15
+recent <- data %>% filter (date>mindate) %>% group_by(region) %>% summarise (cas_recent=n())
+
+mdg<-mdg %>% left_join(recent,
+                       by=c("NAME"="region"))
+
+recent_map<-ggplot(mdg)+
+  geom_sf(aes(fill=cas_recent))+
+  scale_fill_viridis_b(breaks=c(seq(0,max(mdg$cas_recent,na.rm=TRUE),by=30)),
+    option="A",
+                       name="Nombre de cas recents",
+                       begin=0.1, end=0.8,
+                       direction=-1)+
+  guides(fill=guide_colorsteps())+
+  labs(title="Nombre de cas par region 15 derniers jours")+
+  theme_void()
+
+
+cumul_map+recent_map
+
+
+
+```
+
+## Nombre de cas cumules et recents par region
+
+```{r}
+region<-region %>% left_join(recent)
+  
+knitr::kable(region,col.names = c("Region","Nombre de cas cumules", "Nombre de cas lors des 15 derniers jours"))
+```
+
+## Niveau d'alerte
+
+```{r, dpi=300, fig.width=15, fig.height=8}
+
+
+tests %>% 
+mutate(week=ceiling_date(date,"week")) %>% 
+group_by(week) %>% 
+summarise(n=sum(cas)) %>% 
+mutate(cases.mov.avg=rollmeanr(n,7,fill=NA)) %>% 
+mutate (resurg_low=lag(cases.mov.avg)*0.1+lag(cases.mov.avg),
+resurg_high=lag(cases.mov.avg)*0.2+lag(cases.mov.avg)) %>% mutate(alerte=ifelse(cases.mov.avg>resurg_high,"Oui","Non")) %>% filter(!is.na(alerte)) %>% 
+ggplot(aes(x=week,y=cases.mov.avg))+
+geom_col(aes(fill=alerte))+
+geom_ribbon(aes(ymin=resurg_low,ymax=resurg_high),alpha=0.5)+
+scale_x_date(date_breaks = "1 month", date_labels = "%Y-%m-%d") +
+labs(x="Date",y="Nombre de cas par semaine",title="Nombre de cas hebdomadaire et  \n seuils d'alerte resurgence")+
+scale_fill_brewer("Au dessus du niveau d'alerte"
+  ,palette="Dark2") +
+  theme(
+    panel.background = element_blank(),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
 ```
 
