@@ -62,8 +62,8 @@
 ##Nous allons d'abord commencer par lire l'ensemble des données.
 
 library(tidyverse)
-
-data_file <- read.csv('code/DataSample_final.csv', header = TRUE)
+setwd('~/Desktop/MoH_course_2021-main/DataCleaning/')
+data_file <- read.csv('DataSample_final.csv', header = TRUE)
 
 # We see that there is a problem with an error message showing up in red. We cannot clean our data unless we can read in our data. We can fix this by allowing for French accents. 
 # Nous voyons qu'il y a un problème avec un message d'erreur qui s'affiche en rouge. 
@@ -72,7 +72,7 @@ data_file <- read.csv('code/DataSample_final.csv', header = TRUE)
 
 #data_file <- read.csv('DataSample.csv', header = TRUE, fileEncoding = "Latin1", check.names = F)
 # Si la ligne ci-dessus génère des avertissement, vous pouvez essayer la suivante:
-data_file <- read.csv("code/DataSample_final.csv", header=TRUE, encoding = "Latin1", check.names = F)
+data_file <- read.csv("DataSample_final.csv", header=TRUE, encoding = "UTF-8", check.names = F)
 
 # Now what should we check in the data first, we see that there are different columns that represent different pathogens -- to make it easier we are going to relabel the date variable as 'date'; Suspicion d'arbovirose as 'sus_arb'; Diarrh\u008ees aigues chez moins 5ans as 'diarr_u5', and Toxi Infection Alimentaire collective (TIAC) as 'tiac'
 # Maintenant, que devons-nous vérifier  en premier, nous voyons qu'il y a différentes colonnes qui représentent des agents pathogènes -- 
@@ -82,7 +82,9 @@ data_file <- read.csv("code/DataSample_final.csv", header=TRUE, encoding = "Lati
 # Diarrhées aigues chez moins 5ans comme 'diarr_u5', 
 #et Toxi Infection Alimentaire collective (TIAC) comme 'tiac'
 
-colnames(data_file)
+colnames(data_file) ## will display the column names of our data set
+nrow(data_file) ## will count the number of rows in the data set
+head(data_file) ## will display the first few rows of the data set
 
 # In these data, we want to make some summary plots of suspected arbovirus cases; diarrhea in children under 5; and toxic foods -- we are going to focus on these column names but since we are going to be using them often, we will first shorten these names to something easier. 
 # Dans ces données, nous voulons créer des figures qui récapitulent les cas suspects d'arbovirus; diarrhée chez les enfants de moins de 5 ans; et les aliments toxiques -- nous allons nous concentrer sur ces données, mais puisque nous allons les utiliser souvent, nous allons d'abord raccourcir ces noms pour faciliter l'analyse .
@@ -92,7 +94,7 @@ colnames(data_file)
 
 data_file$date <- data_file$`Date SE` 
 data_file$sus_arb <- data_file$`Suspicion d'arbovirose`
-data_file$diarr_u5 <- data_file$`Diarrhées aigues chez moins 5ans`
+data_file$diarr_u5 <- data_file$"Diarrh\xe9es aigues chez moins 5ans"  
 data_file$tiac <- data_file$`Toxi Infection Alimentaire collective (TIAC)`
 
 ## and we can check how well this worked -- 
@@ -129,14 +131,21 @@ table(data_file$date)
 #pourraient être correctes. Quelles sont les raisons pour 
 # lesquelles ces données pourraient être différentes? 
 # Existe-t-il des moyens de les vérifier?
-plot(table(data_file$date))
+plot(table(data_file$date)) ## plot the total number of instances of each date in the data set 
 
+data_file[which(data_file$date == '1/20/19'),] ## show me the row where the date is equal to 1/20/19
+data_file$date <- str_replace(data_file$date, '1/20/19', '1/20/20') ## replace 1/20/19 with the correct year of 1/20/20
+
+data_file[which(data_file$date == '1/27/19'),] ## show me the row where the date is equal to 1/27/19
+data_file$date <- str_replace(data_file$date, '1/27/19', '1/27/20') ## replace 1/27/19 with the correct year of 1/27/20
+
+table(data_file$date)
 # and we can make it a date variable
 # et nous pouvons en faire une variable en format d'une date
 # load library for managing dates (lubridate)
 # on charge la bibliothèque pour la géstion des dates
 library(lubridate)
-data_file$date <- mdy(data_file$date)
+data_file$date <- mdy(data_file$date) ## put my date in a correct date format 
 
 # Checking location information ############################################
 # Now let's check the locations -- how many districts and regions should there be in the data? First, let's clean the region variable. 
@@ -145,7 +154,7 @@ data_file$date <- mdy(data_file$date)
 # combien de districts et de régions devons nous avoir dans les données? 
 #Tout d'abord, nettoyons la variable <<region>>.
 
-unique(data_file$region)
+sort(unique(data_file$region)) ## the unique regions that are listed in the data - shown alphabetically
 
 ## First, we can see that there are too many regions -- why are some of additional regions?
 ## Premièrement, nous pouvons voir qu'il y a trop de régions -- 
@@ -167,9 +176,64 @@ sort(unique(data_file$region))
 data_file$region <- str_replace(data_file$region, 'MELAKY', 'Melaky')
 sort(unique(data_file$region))
 
+data_file$region <- str_replace(data_file$region, 'Mangoro Alaotra', 'Alaotra Mangoro')
+sort(unique(data_file$region))
+
 ## for now we will just focus on the regions and work on cleaning the districts later. 
 ## pour l'instant nous allons nous concentrer uniquement sur les 
 # régions et travailler sur le nettoyage des quartiers plus tard.
+
+
+### START - FRIDAY ACTIVITY: 
+# Fix district names ############################################
+# Now we can check on the districts and clean them up similar to what we did for regions
+
+sort(unique(data_file$district))
+## in total we should have 114, but we see that we have 116 which means we have at least 2 errors (assuming every district reports data)
+
+## we can see that two districts have an error with an extra space before the name
+data_file$district <- str_replace(data_file$district, ' Ambalavao', 'Ambalavao')
+data_file$district <- str_replace(data_file$district, ' Ambanja', 'Ambanja')
+
+sort(unique(data_file$district))
+
+# Checking for duplicate rows ############################################
+# Now let's check to see if there are duplicate rows, first we'll check it using the date variable and see if there are dates where there more than 114 districts reporting
+
+dates_to_check <- names(table(data_file$date))[which(table(data_file$date)>114)]
+dates_to_check
+# There are 3 dates where there are more than 114 districts reporting data. We can check the data for those dates. 
+
+## check the first date identified
+check_1 <- data_file %>% filter(date == '2019-12-30')
+nrow(check_1) ## there are 116 rows in the data, but only 114 unique district names 
+length(unique(check_1$district)) ## 114 unique district names 
+## we can look at how many instances of each district occur in these data and see that 'Bealanana' has 2 rows of data
+sort(table(check_1$district))
+## we can look at these data and we see that data was entered 2 times and the rows of these data do match (i.e. it is a clear duplicate of this row)
+check_1 %>% filter(district == 'Bealanana')
+row_to_remove <- rownames(data_file[which(data_file$date == '2019-12-30' & data_file$district == 'Bealanana' & data_file[,1] == 2),])
+
+## we can remove one row of these data from our data set then
+data_file <- data_file[-as.numeric(row_to_remove),]
+table(data_file$date)
+
+## check the second date identified
+check_2 <- data_file %>% filter(date == '2020-01-27')
+nrow(check_2) ## there are 116 rows in the data, but only 114 unique district names 
+length(unique(check_2$district)) ## 114 unique district names 
+## we can look at how many instances of each district occur in these data and see that 'Bealanana' has 3 rows of data
+sort(table(check_2$district))
+check_2 %>% filter(district == 'Bealanana')
+
+### These all suggest that there is an issue with reporting from Bealanana where there are multiple reports in a given month with different values in that month. This should warrant further investigation in trying to figure out why this particular district is reporting multiple reports in certain months. 
+
+## for now, we will just remove this date and district data since we are not sure which row to check 
+
+row_to_remove_2 <- rownames(data_file[which(data_file$date == '2020-01-27' & data_file$district == 'Bealanana'),])
+data_file <- data_file[-as.numeric(row_to_remove_2),]
+
+### END - FRIDAY ACTIVITY
 
 # Finally plotting a time series ############################################
 # Now let's finally plot how many suspected arbovirus cases there are by day
@@ -185,7 +249,7 @@ plot(data_file$date, data_file$sus_arb, xlab = 'Date', ylab = 'Susc. Arb cases')
 # Premièrement, il semble qu'il y a un grand nombre de cas en
 #deux jours -- enquêtons sur ces cas --
 
-data_file[which(data_file$sus_arb == max(data_file$sus_arb, na.rm=T)),]
+data_file[which(data_file$sus_arb == max(data_file$sus_arb, na.rm=T)),] ## look at the rows where the number of reportes suscp arb cases are the highest -- we want to look at the two very high outliers 
 
 # were there any outbreaks during this time? or is this a data error? We can first look at the other cases that were reported in this region 
 # y a-t-il eu des épidémies pendant cette période? 
@@ -193,7 +257,7 @@ data_file[which(data_file$sus_arb == max(data_file$sus_arb, na.rm=T)),]
 #Nous pouvons d'abord regarder les autres cas qui ont été signalés 
 #dans cette région
 
-very_high_sus_arb <- filter(data_file, region == 'Amoron i Mania') 
+very_high_sus_arb <- filter(data_file, region == 'Amoron i Mania') ## look at just that region's data
 plot(very_high_sus_arb$date, very_high_sus_arb$sus_arb)
 
 ## These are the only 2 missing values -- which makes it suspicious that there really were 10,000 cases reported on two very close days to one another. But this is not definitive proof that these are errors. We can also consult other reports, historical information, the initial data entry forms, databases, etc. to check these data since they look very suspicious. It turns out that these were both data entry errors -- for these two days there was only 1 case not 10,000 cases reported. 
@@ -236,4 +300,20 @@ plot(total_sus_arb_per_day$date, total_sus_arb_per_day$total_arb_cases, xlab = '
 sus_arb_cases_2020_region <- data_file %>% filter(date > '2020-01-01') %>% group_by(date, region) %>% summarise(total_arb_cases = sum(sus_arb, na.rm=T))
 
 ggplot(sus_arb_cases_2020_region, aes(x = date, y = total_arb_cases, color = region)) + geom_line() + xlab('Date') + ylab('Total Susp Arb Cases')
+
+## FRIDAY ACTIVITY 
+# Plotting the time series of TIAC data per day ############################################
+
+plot(total_tiac_per_day$date, total_tiac_per_day$total_tiac_cases, xlab = 'Date')
+
+total_tiac_per_day <- data_file %>% group_by(date) %>% summarise(total_tiac_cases = sum(tiac, na.rm=T))
+plot(total_tiac_per_day$date, total_tiac_per_day$total_tiac_cases, xlab = 'Date', ylab = 'Total tiac cases', type = 'b')
+
+### and we can plot tiac by district 
+
+tiac_cases_2020_district <- data_file %>% filter(date > '2020-01-01') %>% group_by(date, district) %>% summarise(total_tiac_cases = sum(tiac, na.rm=T))
+
+ggplot(tiac_cases_2020_district, aes(x = date, y = total_tiac_cases, color = district)) + geom_line() + xlab('Date') + ylab('Total TIAC Cases')
+
+
 
